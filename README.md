@@ -77,7 +77,7 @@ Now the **test.nsys-rep** file is created in your current repository. Open this 
 <br/>
     
 ## Credits
-- Minseo Kwon (@Minseo10)  
-- Sooyoung Kwon (@Sooyoungk01)  
-- Hyojin Kim (@hjyion)  
+- Minseo Kwon ([@Minseo10](https://github.com/Minseo10))  
+- Sooyoung Kwon ([@Sooyoungk01](https://github.com/Sooyoungk01))  
+- Hyojin Kim ([@hjyion](https://github.com/hjyion))  
 
