@@ -1,6 +1,7 @@
 import torch 
 import torch.nn as nn
 
+import torch.cuda.nvtx as nvtx
 
 class SelfAttention(nn.Module):
     def __init__(
@@ -31,9 +32,16 @@ class SelfAttention(nn.Module):
         key = key.reshape(Batch, key_len, self.heads, self.head_dims)
         value = value.reshape(Batch, value_len, self.heads, self.head_dims)
 
+        nvtx.range_push("Q")
         query = self.query(query)
-        key = self.key(key)
-        value = self.value(value)
+        nvtx.range_pop()
+        nvtx.range_push("K")
+        key = self.key(key) 
+        nvtx.range_pop()
+        nvtx.range_push("V")
+        value = self.value(value) 
+        nvtx.range_pop()
+
 
         attention_score = torch.einsum('bqhd,bkhd->bhqk', [query, key])
 
@@ -41,8 +49,9 @@ class SelfAttention(nn.Module):
             attention_score = attention_score.masked_fill(mask==0, float('-1e20'))
 
         attention_score = attention_score/((self.head_dims)**(1/2))
+        nvtx.range_push("softmax")
         attention_score = torch.softmax(attention_score, dim=-1)
-
+        nvtx.range_pop()
         out = torch.einsum('bhqv,bvhd->bqhd', [attention_score, value]).reshape(
             Batch, query_len, self.heads*self.head_dims
         )
@@ -76,11 +85,20 @@ class TransformerBlock(nn.Module):
         self.dropout = nn.Dropout(dropout)
     
     def forward(self, x, mask):
+        nvtx.range_push("norm")
         norm = self.layer_norm1(x)
+        nvtx.range_pop()
+        nvtx.range_push("attention")
         attention_block = self.attention(norm, norm, norm, mask)
+        nvtx.range_pop()
         add = x + attention_block
+        nvtx.range_push("norm")
         norm = self.layer_norm2(add)
+        nvtx.range_pop()
+        nvtx.range_push("feed forward")
+        
         feed_forward = self.feed_forward(norm)
+        nvtx.range_pop()
         out = feed_forward + add
         return out
 
@@ -141,17 +159,24 @@ class ViT(nn.Module):
         )
         patches = patches.view(patches.shape[0], -1, patches.shape[-1])
 
+        nvtx.range_push("cls_embedding")
         x = self.cls_embedding.expand(patches.shape[0], -1, -1)
+        nvtx.range_pop()
+        nvtx.range_push("patch_embedding")
         patch_embeddings = self.patch_embeddings(patches)
+        nvtx.range_pop()
         x = torch.cat((x, patch_embeddings), dim=1) + self.postional_embedding
         x = self.dropout(x)
         mask = None
         for block in self.vit_blocks:
+            nvtx.range_push("decoder")
             x = block(x, mask)
+            nvtx.range_pop()
+        nvtx.range_push("classifier")
         out = self.to_cls_token(x[:, 0])
         out = self.classifier(out)
+        nvtx.range_pop()
         return out
-
 
 
 if __name__ == "__main__":
