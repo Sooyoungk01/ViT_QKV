@@ -62,6 +62,6 @@ def predict(image_path):
     print(f'THE IMAGE CONTAINS A {prediction.upper()}')
 
 if __name__ == "__main__":
-    image_path = './cifar10/test/dog/blenheim_spaniel_s_000431.png'
+    image_path = 'cifar10/test/dog/0050.png'
     predict(image_path)
 

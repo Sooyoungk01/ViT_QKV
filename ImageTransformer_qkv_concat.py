@@ -36,7 +36,7 @@ class SelfAttention(nn.Module):
         nvtx.range_push("Q")
         query = query.permute(2, 0, 1, 3)
         query_total = torch.cat([query[0], query[1], query[2], query[3]], dim=1)
-        query = self.query(query)
+        query_total = self.query(query_total)
         splits_q = query_total.split(5, dim=1)
         query = torch.stack([splits_q[0], splits_q[1], splits_q[2], splits_q[3]], dim=2)
         nvtx.range_pop()
@@ -44,7 +44,7 @@ class SelfAttention(nn.Module):
         nvtx.range_push("K")
         key = key.permute(2, 0, 1, 3)
         key_total = torch.cat([key[0], key[1], key[2], key[3]], dim=1)
-        key = self.key(key) 
+        key_total = self.key(key_total) 
         splits_k = key_total.split(5, dim=1)
         key = torch.stack([splits_k[0], splits_k[1], splits_k[2], splits_k[3]], dim=2)
         nvtx.range_pop()
@@ -52,7 +52,7 @@ class SelfAttention(nn.Module):
         nvtx.range_push("V")
         value = value.permute(2, 0, 1, 3)
         value_total = torch.cat([value[0], value[1], value[2], value[3]], dim=1)
-        value = self.value(value) 
+        value_total = self.value(value_total) 
         splits_v = value_total.split(5, dim=1)
         value = torch.stack([splits_v[0], splits_v[1], splits_v[2], splits_v[3]], dim=2)
         nvtx.range_pop()
@@ -112,9 +112,6 @@ class TransformerBlock(nn.Module):
         nvtx.range_pop()
         nvtx.range_push("feed forward")
         
-        #change
-        print("feed forward input size:" + str(norm.size()))
-
         feed_forward = self.feed_forward(norm)
         nvtx.range_pop()
         out = feed_forward + add
@@ -176,9 +173,6 @@ class ViT(nn.Module):
             patches.shape[3]*patches.shape[4]*patches.shape[5]
         )
         patches = patches.view(patches.shape[0], -1, patches.shape[-1])
-
-        #change
-        print("patches size"+ str(patches.size()))
 
         nvtx.range_push("cls_embedding")
         x = self.cls_embedding.expand(patches.shape[0], -1, -1)
