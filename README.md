@@ -1,38 +1,83 @@
-# Vision-Transformer On CIFAR-10
+# Accelerating Vision Transformer on Jetson Nano
 
-PyTorch Implementation of ViT (Vision Transformer), an transformer based architecture for Computer-Vision tasks. In ViT the author converts an image into 16x16 patche embedding and applies visual transformers to find relationships between visual semantic concepts. The ViT achieves State Of the Art performance on all Computer-Vision task. This idea is persented in the paper [An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale](https://openreview.net/pdf?id=YicbFdNTTy)
+In this project, we try to acclerate Vision Transformer(a.k.a ViT) on Jetson Nano Developer's Kit.
 
-In the paper  ViT was first trained on ImageNet and then used transfer learning to achieve SOTA. So to check how the ViT performs without any prior pretraining, we
-directly train the ViT on CIFAR-10 dataset.
+**ViT** is an transformer based architecture for computer vision tasks such as image classification or object detection. In the paper, the author converts an image into 16x16 patches by patch embedding and applies self-attention based transformer encoders to find relationships between visual concepts of the patches. The ViT achieves SOTA performance on image classification tasks. You can see the original paper at [An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale](https://openreview.net/pdf?id=YicbFdNTTy)
+
+We refered to @ShivamRajSharma's PyTorch implementation of ViT.  
 
 <p align="center">
   <img src="https://github.com/ShivamRajSharma/Vision-Transformer/blob/master/ViT.png" height="300"/>
 </p>
 
-## Usage
+The project was developed and tested with the following system:
 
-1) Install all the libraries required ```pip install -r requirements``` .
-2) Download the dataset from https://www.cs.toronto.edu/~kriz/cifar.html and place it inside the ```input/``` .
-3) Run ```python3 train.py``` .
-4) For inference run ```python3 predict.py``` .
-
-## Results 
-
-The ViT took about __ minutes to train on CIFAR-10 dataset. Without any prior pre-training we were able to achieve about 74% accuracy on validation dataset.
+- Jetson Nano Developer's Kit    
+- JetPack 4.6.3           
+- CUDA 10.2      
+- Python 3.6      
+      
+<br/>     
+     
+## Acceleration Method: QKV Dimension Reduction  
 
 <p align="center">
-  <img src="https://github.com/ShivamRajSharma/Vision-Transformer/blob/master/acc_plot.png" height="300"/>
-</p>
+  <img src="https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FboPfZG%2FbtsiuAiWLUU%2F7NfijcR8xYmo4Tz11mxywk%2Fimg.png" height="300"/>
+</p>  
+By decreasing the dimension of input matrices from 4 to 3, the latency of calculating QKV matrices decreased to about 16%.    
+ 
+<br/>  
+ 
+## Train and Predict
+1. Clone **ViT_QKV** repository:
+  ```sh
+  git clone https://github.com/Sooyoungk01/ViT_QKV.git
+  ```
 
-## Extra Info
-<pre>
-1) Training Stratergy      : Training the whole network from scratch.
-2) Optimizer               : Adam optimizer was used with weight decay.
-3) Learning Rate Scheduler : Linear decay with warmup.
-4) Regularization          : Dropout, HorizontalFlip, RandomBrightness, RandomContrast, RGBShift, GaussNoise
-5) Loss                    : Categorical Cross-Entropy Loss.
-6) Performance Metric      : Accuracy.
-7) Performance             : 74% Accuracy
-7) Epochs Trained          : 80
-8) Training Time           : 12 minutes
-</pre>
+2. Install all the required libraries:
+  ```sh
+  pip install -r requirements.txt
+  ```
+
+3. Download the CIFAR-10 dataset from https://www.cs.toronto.edu/~kriz/cifar.html and place it inside the cloned repository.  
+
+4. Train:
+  ```sh
+  python train.py
+  ```
+
+5. Inference:
+  ```sh
+  python predict.py
+  ```
+  
+<br/>
+
+## Profiling with Nsight Systems  
+For profiling, you need to install the ***nsys*** commnad from the Nsight Systems CLI. Thankfully, it is included in the JetPack 4.6.3.  
+        
+                
+1. Create a shell script file: 
+  ```sh
+  vim nsys.sh
+  ```
+  
+2. Write this in **nsys.sh**:
+  ```sh
+  nsys profile -t cuda,osrt,nvtx,cudnn,cublas -o test -w true --force-ovewrite true python3 predict.py
+  ```
+  
+3. Run **nsys.sh**:
+  ```sh
+  source nsys.sh
+  ```
+
+Now the **test.nsys-rep** file is created in your current repository. Open this file using Nsight Systems API on your labtop (You can install the API following the instructions in https://developer.nvidia.com/nsight-systems. Unfortunately, you can't open the API on Jetson Nano.)  
+  
+<br/>
+    
+## Credits
+- Minseo Kwon ([@Minseo10](https://github.com/Minseo10))  
+- Sooyoung Kwon ([@Sooyoungk01](https://github.com/Sooyoungk01))  
+- Hyojin Kim ([@hjyion](https://github.com/hjyion))  
+
